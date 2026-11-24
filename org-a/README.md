@@ -24,3 +24,7 @@ None of these is in effect until the maker and checker flow approves it.
 3. Parmana records the approval in `governance/policy-approvals.jsonl`.
 
 See `docs/site/guides/policy-governance-maker-checker` in `parmana-core` for the full procedure.
+
+## Connectors
+
+Org A's connector setup, with the status of each, is in [connectors/README.md](connectors/README.md). The connector code lives in `parmana-connectors`.
