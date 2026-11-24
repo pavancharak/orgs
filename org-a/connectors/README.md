@@ -112,7 +112,17 @@ A registration makes Parmana release a capability to the endpoint. It is a chang
 
 **Each capability is one registration.** Register `github:pr-fetch`, `github:pr-merge` and `github:comment` separately, each with its own policy.
 
-**Not confirmed here:** the exact checks Parmana makes on the endpoint address at approval. The register route checks it again at approval, and the rules are in `parmana-core`'s external connector code.
+**The endpoint address is checked twice, and the checks are the same both times.** Parmana refuses the address unless every one of these holds:
+
+- The URL is an absolute `https://` URL, at most 2,048 characters.
+- It has no user name, no password and no fragment.
+- Its host is a name, not an IP address.
+- The host is not `localhost`, not `*.localhost`, and has at least one dot.
+- The host resolves in DNS, and **every** address it resolves to is public. An address in any of these ranges is refused: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10` (carrier-grade NAT), `127.0.0.0/8` (loopback), `169.254.0.0/16` (link-local), `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.88.99.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4` (multicast), `240.0.0.0/4`, and the IPv6 equivalents (`::/128`, `::1/128`, `64:ff9b::/96`, `100::/64`, `2001::/23`, `2001:db8::/32`, `2002::/16`, `fc00::/7`, `fe80::/10`, `fec0::/10`, `ff00::/8`).
+
+The checks run when a registration is **proposed**, and again when it is **approved** (`packages/api/src/routes/external-connectors.ts`, the approve route). A refused check returns an error and the change is not stored, or not approved. The checker should expect the address check to run at approval too.
+
+**Known residual risk, not closed by the code.** Releases do not check the address again. The host is resolved when a release is sent, so if the name's DNS later changes to a private address, Parmana sends the release there. The approval checks reduce this risk but do not remove it. Before a production registration, the operator should control the endpoint's DNS and keep it under Org A's control, and confirm the approved address is still public at release time. Closing the gap in code is a separate change in `parmana-core`.
 
 ## Status
 
@@ -124,7 +134,7 @@ A registration makes Parmana release a capability to the endpoint. It is a chang
 | Endpoint configuration names aligned with the connectors | Done in `parmana-connectors` commit `dd27c1f` on branch `fix/github-endpoint-config`. Not yet merged. |
 | Durable answer store | **Not built. Required before production.** |
 | Policies approved | **Not done. All three are drafts.** |
-| Endpoint deployed at a public HTTPS address | **Not done** |
+| Endpoint deployed at a public HTTPS address | **Not done.** Read the address checks above first. |
 | Endpoint registered with Parmana, per capability | **Not done** |
 | GitHub App created for Org A and installed on its repositories | **Not done** |
 
