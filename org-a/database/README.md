@@ -2,9 +2,32 @@
 
 This page is the database that Org A's Parmana service uses: what it is, where it runs, which schema version it has, and the rules for changing it.
 
-The schema code is shared Parmana software, and it lives in `parmana-core`, under `supabase/migrations/`. This page does not copy that code. The database instance, its data and its connection settings are Org A's, and they are described here.
+Two things are kept apart:
+
+- **The software** that defines and changes the schema is Parmana's, and it lives in `parmana-core`, under `supabase/migrations/` and `scripts/migrate-database.ts`. This repository does not copy it, because a copy would drift from the software. Org A pins the software to a specific commit, below.
+- **The database** is Org A's: its instance, its data, its connection settings, and the record of what has been applied to it. All of that is described here.
 
 Nothing in this folder is a secret. The connection string is set in the environment of the service that uses the database, and its value is never written down here.
+
+## Software pin
+
+| Item | Value |
+| --- | --- |
+| Repository | `pavancharak/parmana-core` |
+| Pinned commit | `88dd7e0b` (on `main`) |
+| Migrations at that commit | 62 files. Production has 62 applied. |
+| Checked | 2026-11-24 |
+
+To run any command in this file, check out the pinned commit first:
+
+```bash
+git clone https://github.com/pavancharak/parmana-core
+cd parmana-core
+git checkout 88dd7e0b
+npm ci
+```
+
+Use the same commit for every operation on this database. Running a newer commit against this database changes the schema only when you apply its migrations, but the software must match the schema it runs against. When Org A moves to a newer commit, update this pin here first.
 
 ## What it is
 
@@ -42,7 +65,7 @@ Re-check the state before every change, because it can move.
 
 ## Checking the schema
 
-From a checkout of `parmana-core`, with `DATABASE_URL` set in the shell (not written to any file in this repository):
+From the pinned checkout of `parmana-core` (see the software pin above), with `DATABASE_URL` set in the shell, not written to any file in this repository:
 
 ```bash
 npx tsx scripts/migrate-database.ts status
@@ -56,7 +79,7 @@ npx tsx scripts/migrate-database.ts apply --dry-run
 1. Take a backup of the database first, and confirm it can be restored.
 2. Run `status`, then `apply --dry-run`, and read what would change.
 3. Run `apply`, then `status` again. It should show zero pending.
-4. Record the result in this file: the date, the migrations applied, and the commit of `parmana-core` they came from.
+4. Record the result in the history below: the date, the migrations applied, and the commit they came from.
 
 Apply migrations before deploying the code that needs them. The deployment order is written in `parmana-core`'s production runbook.
 
@@ -81,3 +104,13 @@ Apply migrations before deploying the code that needs them. The deployment order
 | Row-level security on `refusal_record_outbox` | Enabled, as of 2026-11-24. |
 | Backup and restore test | **Not recorded.** Record it before the first real use. |
 | Test database | Not recorded here. Set up separately. |
+
+## Migration history
+
+| Date | Migrations applied | Software commit | Operator |
+| --- | --- | --- | --- |
+| Before 2026-11-24 | 60 migrations, from `20260629013035_initial_schema.sql` to `20261121140000_add_evidence_anchor_to_execution_trust_records.sql` | Recorded in `parmana-core` history, before this page existed | Org A's operator |
+| 2026-11-24 | `20261123120000_add_refusal_record_outbox.sql` | `88dd7e0b` | Org A's operator |
+| 2026-11-24 | `20261124120000_enable_rls_refusal_record_outbox.sql` | `88dd7e0b` | Org A's operator |
+
+Add a row for every change.
