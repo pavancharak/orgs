@@ -1,6 +1,6 @@
 # github-pr-approval 1.2.0
 
-Authorizes a merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). Only a signed human approval for that exact pull request can authorize a merge. The caller-declared safety facts can refuse one, never authorize it. A merge is refused when the branch is not protected, the repository is not authorized, required reviews are not complete, a status check is not passing, or the risk score is above 3. Any other case is refused.
+Authorizes the merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). A merge needs a signed human approval for that exact pull request and that exact head commit (the expectedHeadSha). If the head has moved since the approval, the merge is refused. The caller-declared safety facts can refuse a merge, never authorize one. A merge is refused when no head commit is given, when the branch is not protected, the repository is not authorized, required reviews are not complete, a status check is not passing, or the risk score is above 3.
 
 | | |
 |---|---|
@@ -9,11 +9,13 @@ Authorizes a merge of one GitHub pull request, owner/repo#number, through the Gi
 | Schema | `1.0.0` |
 | Status | **Draft.** Not in effect until the maker and checker flow approves it. |
 
-**Changed in this version:** an earlier draft let the caller-declared safety facts authorize a merge. That broke the rule that such facts may only refuse, so the approve rule now depends on the signed approval alone.
-
 ## What it covers
 
-Merges one GitHub pull request through the GitHub connector, with the merge method `merge`, `squash` or `rebase`, and optionally the head SHA the approver saw. A merge cannot be undone through the connector.
+Merges one GitHub pull request through the GitHub connector, with the merge method `merge`, `squash` or `rebase`. A merge cannot be undone through the connector.
+
+The approval covers the pull request **and the head commit** (`expectedHeadSha`). If the branch has moved since the approver reviewed it, the merge is refused. This is what stops a merge of code the approver never saw.
+
+The approval does **not** cover the merge method. The rules decide which methods are allowed, and the drafts allow all three. Decide this before approval; see the open decisions below.
 
 ## How a decision is made
 
@@ -40,13 +42,14 @@ Trust comes from the signature, not from who sent the value. An unsigned value i
 
 | Signal | Type | Trust | Meaning |
 |---|---|---|---|
-| `targetRef` | string | Bound | the target of the request (`target`). |
-| `mergeApproved` | boolean | Approved | a signed approval for that pull request. |
-| `branchProtected` | boolean | Untrusted | declared by the caller. Can only refuse. |
-| `repositoryAuthorized` | boolean | Untrusted | declared by the caller. Can only refuse. |
-| `requiredReviewsCompleted` | boolean | Untrusted | declared by the caller. Can only refuse. |
-| `statusChecksPassed` | boolean | Untrusted | declared by the caller. Can only refuse. |
-| `riskScore` | number | Untrusted | declared by the caller. Can only refuse. |
+| `targetRef` | string | Bound | The target of the request, `owner/repo#number`. |
+| `headSha` | string | Bound | The head commit the merge names (`expectedHeadSha`). The approval covers this exact value. |
+| `mergeApproved` | boolean | Approved | A signed approval for that pull request, at that head commit. |
+| `branchProtected` | boolean | Untrusted | Declared by the caller. Can only refuse. |
+| `repositoryAuthorized` | boolean | Untrusted | Declared by the caller. Can only refuse. |
+| `requiredReviewsCompleted` | boolean | Untrusted | Declared by the caller. Can only refuse. |
+| `statusChecksPassed` | boolean | Untrusted | Declared by the caller. Can only refuse. |
+| `riskScore` | number | Untrusted | Declared by the caller. Can only refuse above 3. |
 
 ## Rules
 
@@ -54,22 +57,29 @@ Checked in this order. The first match decides.
 
 | # | Rule | Outcome | What it means |
 |---|---|---|---|
-| 1 | `reject-no-approval` | reject | Refused: no signed approval covers merging this pull request. |
-| 2 | `reject-unsafe-state` | reject | Refused: the branch, reviews, status checks or repository do not meet the merge requirements. |
-| 3 | `reject-high-risk` | reject | Refused: the risk score is above 3. |
-| 4 | `approve-approved-merge` | approve | Merge approved: a signed approval covers this pull request. The caller-declared checks can refuse a merge, but they cannot authorize one. |
-| 5 | `reject-otherwise` | reject | Refused: the target is not a pull request reference. |
+| 1 | `reject-no-approval` | reject | Refused: no signed approval covers merging this pull request at this head commit. |
+| 2 | `reject-no-head-sha` | reject | Refused: the merge does not name the head commit the approver reviewed (expectedHeadSha). |
+| 3 | `reject-unsafe-state` | reject | Refused: the branch, reviews, status checks or repository do not meet the merge requirements. |
+| 4 | `reject-high-risk` | reject | Refused: the risk score is above 3. |
+| 5 | `approve-approved-merge` | approve | Merge approved: a signed approval covers this pull request at this head commit. |
+| 6 | `reject-otherwise` | reject | Refused: the target is not a pull request reference. |
 
 ## What the approval covers, and what it does not
 
-A signed approval must name the pull request (`target`) and match it exactly. The approval covers merging that pull request. **It does not cover the merge method or the head SHA.** A caller could send a different merge method, or a head SHA the approver never saw, under the same approval. The connector sends the head SHA to GitHub, which refuses the merge if the head has moved, but only when a SHA is given.
+- **Covered:** the pull request (`target`) and the head commit (`headSha`). A merge at any other head is refused.
+- **Not covered:** the merge method. Any allowed method is accepted under the approval.
+- **Not covered:** the caller-declared safety facts. They can refuse a merge, but a true value does not prove anything about GitHub.
 
 ## Known gaps
 
-- The five untrusted facts can refuse a merge, but they cannot prove the branch is protected, the reviews are done, or the checks pass. Only a GitHub signal source can prove those. Until one exists, the approver is relying on the caller's word for each of them when a merge is refused, and cannot rely on them when it is allowed.
-- The approval does not bind the merge method. Either the approver names the method in the approval, or a rule must check it. The current draft checks neither.
-- A merge is irreversible through the connector. Before the first real merge, the approver should confirm the merge method and the head SHA.
+- The five caller-declared facts (`branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, `riskScore`) are not checked against GitHub. They only refuse. Until a GitHub signal source exists, a caller can declare these facts true to avoid a refusal it would otherwise get. The facts can never produce an approval on their own, so the approver's signed review of the head commit remains the control that authorizes a merge.
+- A merge is irreversible through the connector.
+
+## Open decisions before approval
+
+1. **Which merge methods are allowed.** The drafts allow `merge`, `squash` and `rebase`. Decide whether to allow only `squash`, for example.
+2. **Whether to require a GitHub signal source** for the five facts before approval, or to accept them as refuse-only.
 
 ## Changing this policy
 
-Do not edit `policy.json` in place once it is approved. Add a new version folder, and run the maker and checker flow for it. The approval record goes in `org-a/governance/policy-approvals.jsonl`. Parmana writes that record. Never write it by hand.
+Do not edit `policy.json` in place once it is approved. Add a new version folder, and run the maker and checker flow for it. Parmana records the approval in its database. To add it to this repository's log, export and copy the files as described in `org-a/governance/README.md`.

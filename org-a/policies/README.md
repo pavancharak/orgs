@@ -67,7 +67,7 @@ Check a draft before proposing it. Run the repository's `PolicyValidator` from `
 
 ## What an approval covers
 
-An approval covers exactly the action and the resource it names. It does not cover other parameters. An approval for a comment does not fix the comment text, and an approval for a merge does not fix the merge method. Each policy's README says what its approval covers and what it leaves open. ([integrate](https://github.com/pavancharak/parmana-core/blob/main/docs/site/agents/integrate.mdx))
+An approval covers exactly the action and the resource it names. For the merge policy, the approval names the pull request and the head commit (`expectedHeadSha`). A merge at any other head is refused. The merge method is not covered by the approval, and the policy's rules decide which methods are allowed. The policy's README says what its approval covers and what it leaves open. ([integrate](https://github.com/pavancharak/parmana-core/blob/main/docs/site/agents/integrate.mdx))
 
 ## Who does what
 

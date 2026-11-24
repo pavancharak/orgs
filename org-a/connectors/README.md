@@ -1,6 +1,6 @@
 # Org A connectors
 
-This page is Org A's connector setup: which connectors are used, what each can do, how each runs, the exact settings, and what must be true before it releases anything. An operator can deploy from this page alone.
+This page is Org A's connector setup. Org A uses the GitHub connector for one action only: merging pull requests that an AI agent proposes. It covers the settings, how the connector runs, and what must be true before it releases anything. An operator can deploy from this page alone.
 
 The connector code is shared software, in the `parmana-connectors` repository, pinned by commit (see below). Nothing in this folder is a secret. Secrets are set in the environment of the service that runs the connector, and their values are never written here.
 
@@ -28,22 +28,18 @@ Record the commit you deploy in the table at the end of this page.
 
 ## GitHub
 
-### Capabilities
+### Capability
 
-| Capability | Does | Changes GitHub | Policy (draft, not approved) |
+| Capability | Does | Changes GitHub | Policy |
 | --- | --- | --- | --- |
-| `github:pr-fetch` | Reads a pull request: head SHA, mergeable state, base branch | No | `github-pr-read` 1.2.0 |
-| `github:pr-merge` | Merges a pull request with `merge`, `squash` or `rebase` | **Yes. Irreversible through the connector.** | `github-pr-approval` 1.2.0 |
-| `github:comment` | Posts one comment, marked with the transaction id | **Yes. Cannot be removed through the connector.** | `github-pr-comment` 1.0.0 |
+| `github:pr-merge` | Merges a pull request with `merge`, `squash` or `rebase`, at the head commit the approver reviewed | **Yes. Irreversible through the connector.** | `github-pr-approval` 1.2.0 (draft, not approved) |
 
-Each policy and its rules are in `../policies/`.
+The read and comment capabilities are not used by Org A. The connector still has them, but the endpoint does not serve them, and Org A does not register them.
 
 ### Target and parameters
 
 - **Target:** `owner/repo#number`, for example `acme/payments#17`. Anything else is refused before GitHub is called.
-- **`github:pr-fetch`:** no parameters.
-- **`github:pr-merge`:** `mergeMethod` (required: `merge`, `squash`, `rebase`); `expectedHeadSha` (optional: 40 lowercase hex characters). When given, GitHub refuses the merge if the head has moved.
-- **`github:comment`:** `body` (required: 1 to 4,000 characters).
+- **`github:pr-merge`:** `mergeMethod` (required: `merge`, `squash`, `rebase`) and `expectedHeadSha` (required by the policy: 40 lowercase hex characters, the head commit the approver reviewed). GitHub refuses the merge if the head has moved.
 
 Any other parameter is refused.
 
@@ -110,7 +106,7 @@ A registration makes Parmana release a capability to the endpoint. It is a chang
 - **Refused:** an `error` message with a `code` field. Common codes are the ones for authentication (`401`), a missing step-up (`403`), and the same person proposing and approving.
 - **List:** `GET /external-connectors/changes?status=PENDING_APPROVAL` returns `{ "changes": [...] }`.
 
-**Each capability is one registration.** Register `github:pr-fetch`, `github:pr-merge` and `github:comment` separately, each with its own policy.
+**One registration.** Register `github:pr-merge` only, with the policy `github-pr-approval`.
 
 **The endpoint address is checked twice, and the checks are the same both times.** Parmana refuses the address unless every one of these holds:
 

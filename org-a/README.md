@@ -11,9 +11,7 @@ This repository holds Org A's Parmana policies and the signed approval records f
 
 | Policy | Version | Capability | Notes |
 | --- | --- | --- | --- |
-| `github-pr-read` | 1.2.0 | `github:pr-fetch` | A read needs a signed approval for that pull request. |
-| `github-pr-approval` | 1.2.0 | `github:pr-merge` | A merge needs a signed approval, and the safety checks below. Five of its facts are declared by the caller until a GitHub signal source exists. The file's `unboundSignalReasons` record this. |
-| `github-pr-comment` | 1.0.0 | `github:comment` | A comment needs a signed approval, and a body of 1 to 4,000 characters. |
+| `github-pr-approval` | 1.2.0 | `github:pr-merge` | A merge needs a signed approval for that pull request at its head commit. Five facts are declared by the caller, and they can only refuse a merge. This is the only policy in this repository. |
 
 None of these is in effect until the maker and checker flow approves it.
 
