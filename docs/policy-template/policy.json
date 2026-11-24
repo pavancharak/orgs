@@ -1,0 +1,57 @@
+{
+  "policyId": "REPLACE-WITH-POLICY-NAME",
+  "policyVersion": "1.0.0",
+  "schemaVersion": "1.0.0",
+  "description": "REPLACE: one sentence on what this policy decides, for which capability, and what it refuses.",
+  "signalsSchema": {
+    "targetRef": "string",
+    "REPLACE-FACT": "boolean",
+    "approvalGranted": "boolean"
+  },
+  "boundSignals": {
+    "targetRef": "target"
+  },
+  "signalSources": {
+    "REPLACE-FACT": {
+      "source": "REPLACE-SOURCE-NAME",
+      "claim": "REPLACE-CLAIM",
+      "subject": "target",
+      "maxAgeSeconds": 60,
+      "parameters": []
+    }
+  },
+  "approvalSignals": {
+    "approvalGranted": {
+      "resourceId": "target"
+    }
+  },
+  "unboundSignalReasons": {},
+  "rules": [
+    {
+      "id": "reject-no-approval",
+      "condition": { "fact": "approvalGranted", "operator": "is_false" },
+      "outcome": { "action": "reject", "reason": "REPLACE: no signed approval covers this request." }
+    },
+    {
+      "id": "reject-REPLACE-REFUSAL",
+      "condition": { "fact": "REPLACE-FACT", "operator": "is_false" },
+      "outcome": { "action": "reject", "reason": "REPLACE: the source does not confirm this." }
+    },
+    {
+      "id": "approve-approved-request",
+      "condition": {
+        "all": [
+          { "fact": "targetRef", "operator": "matches", "value": "^REPLACE-TARGET-PATTERN$" },
+          { "fact": "approvalGranted", "operator": "is_true" },
+          { "fact": "REPLACE-FACT", "operator": "is_true" }
+        ]
+      },
+      "outcome": { "action": "approve", "reason": "REPLACE: approved by a signed approval, and the source confirms the facts." }
+    },
+    {
+      "id": "reject-otherwise",
+      "condition": { "fact": "targetRef", "operator": "matches", "value": "^" },
+      "outcome": { "action": "reject", "reason": "REPLACE: the request is not covered by this policy." }
+    }
+  ]
+}
