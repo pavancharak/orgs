@@ -1,54 +1,39 @@
 # github-pr-approval 1.2.0
 
-Authorizes the merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). A merge needs a signed human approval for that exact pull request and that exact head commit (the expectedHeadSha). If the head has moved since the approval, the merge is refused. The caller-declared safety facts can refuse a merge, never authorize one. A merge is refused when no head commit is given, when the branch is not protected, the repository is not authorized, required reviews are not complete, a status check is not passing, or the risk score is above 3.
+Authorizes the merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). A merge needs a signed human approval for that exact pull request and that exact head commit (the expectedHeadSha). If the head has moved since the approval, the merge is refused. The branch protection, repository authorization, required reviews and status checks are read from GitHub by a signal source, and each must hold. The risk score is declared by the caller and can refuse a merge, never authorize one. Only the merge method is allowed. A merge with any other method is refused. A merge is refused when no head commit is given, when the branch is not protected, the repository is not authorized, required reviews are not complete, a status check is not passing, or the risk score is above 3.
 
 | | |
 |---|---|
 | Capability | `github:pr-merge` |
 | Policy | `github-pr-approval`, version `1.2.0` |
 | Schema | `1.0.0` |
-| Status | **Draft.** Not in effect until the maker and checker flow approves it. |
+| Status | **Draft.** Not in effect until the maker and checker flow approves it. Its signal source must also be registered first. |
 
 ## What it covers
 
 Merges one GitHub pull request through the GitHub connector, using the `merge` method only. A merge cannot be undone through the connector.
 
-The approval covers the pull request **and the head commit** (`expectedHeadSha`). If the branch has moved since the approver reviewed it, the merge is refused. This is what stops a merge of code the approver never saw.
-
-The approval does not cover the merge method. A rule allows only `merge`, so any other method is refused. `merge` keeps every commit the approver reviewed, with the approved head as a parent of the merge commit.
+The approval covers the pull request and the head commit (`expectedHeadSha`). A merge at any other head is refused. The branch protection, repository authorization, reviews and checks are read from GitHub by a signal source, at the same head, and each must hold.
 
 ## How a decision is made
 
-1. Parmana reads the request and sets each signal's value. Each value comes from one of three places, shown in the signals table below.
-2. The rules are checked in the order listed. The first rule whose condition matches decides the outcome, and the rules after it are not checked.
-3. The outcome is `approve` or `reject`. Anything that doesn't match an approve rule is rejected, and the last rule catches every case the others didn't.
+1. Parmana reads each signal's value from the request, from the approval, or from a signal source.
+2. The rules are checked in order, and the first match decides.
+3. If no rule matches, the outcome is reject.
 
-This draft uses the rule format where each rule approves or rejects. Parmana's newer format (policy version 2) checks rules in four named tiers, in this order: refuse, review, approve, reject. A rule in that format must name its tier. These drafts don't use it yet.
-
-## How each signal is trusted
-
-Parmana gives every value a provenance, which says where it may come from:
-
-| Provenance | Meaning | Can it authorize? |
-| --- | --- | --- |
-| **approved** | A person signed an approval. Parmana checks that the signature verifies and that the approval matches the resource exactly. | Yes. This is the only way a policy here authorizes anything. |
-| **bound** (`boundSignals`) | The value is read from the request itself, such as the target. The request is the same one Parmana executes, so the value cannot change between the decision and the action. | Only as a check on what was asked. It proves nothing about the world. |
-| **sourced** | A registered business system established the value, and signed it. | Not used here. No GitHub signal source exists yet. |
-| **untrusted** (caller-declared) | The caller says the value is true or false. Nothing checks it. | It can refuse. It can never authorize. Parmana's rule is that a caller-declared fact can refuse, never authorize, and every such fact must have a reason in `unboundSignalReasons`. |
-
-Trust comes from the signature, not from who sent the value. An unsigned value is untrusted, whoever sent it.
+Each signal's trust is in the table below. A sourced fact counts only when the source signs its answer. An untrusted fact can refuse, never authorize.
 
 ## Signals
 
 | Signal | Type | Trust | Meaning |
 |---|---|---|---|
-| `targetRef` | string | Bound | The target of the request, `owner/repo#number`. |
+| `targetRef` | string | Bound | The pull request, `owner/repo#number`. |
 | `headSha` | string | Bound | The head commit the merge names (`expectedHeadSha`). The approval covers this exact value. |
 | `mergeApproved` | boolean | Approved | A signed approval for that pull request, at that head commit. |
-| `branchProtected` | boolean | Untrusted | Declared by the caller. Can only refuse. |
-| `repositoryAuthorized` | boolean | Untrusted | Declared by the caller. Can only refuse. |
-| `requiredReviewsCompleted` | boolean | Untrusted | Declared by the caller. Can only refuse. |
-| `statusChecksPassed` | boolean | Untrusted | Declared by the caller. Can only refuse. |
+| `repositoryAuthorized` | boolean | Sourced | GitHub signal source: the repository is on Org A's allowed list. |
+| `branchProtected` | boolean | Sourced | GitHub signal source: the base branch has branch protection. |
+| `requiredReviewsCompleted` | boolean | Sourced | GitHub signal source: the required approving reviews exist at the expected head, and none request changes. |
+| `statusChecksPassed` | boolean | Sourced | GitHub signal source: every check run at the expected head passed, and every commit status is success. |
 | `riskScore` | number | Untrusted | Declared by the caller. Can only refuse above 3. |
 
 ## Rules
@@ -59,26 +44,30 @@ Checked in this order. The first match decides.
 |---|---|---|---|
 | 1 | `reject-no-approval` | reject | Refused: no signed approval covers merging this pull request at this head commit. |
 | 2 | `reject-no-head-sha` | reject | Refused: the merge does not name the head commit the approver reviewed (expectedHeadSha). |
-| 3 | `reject-unsafe-state` | reject | Refused: the branch, reviews, status checks or repository do not meet the merge requirements. |
-| 4 | `reject-high-risk` | reject | Refused: the risk score is above 3. |
-| 5 | `approve-approved-merge` | approve | Merge approved: a signed approval covers this pull request at this head commit. |
-| 6 | `reject-otherwise` | reject | Refused: the target is not a pull request reference. |
+| 3 | `reject-not-merge-method` | reject | Refused: only the merge method may be used for this policy. |
+| 4 | `reject-unsafe-state` | reject | Refused: the branch, reviews, status checks or repository do not meet the merge requirements. |
+| 5 | `reject-high-risk` | reject | Refused: the risk score is above 3. |
+| 6 | `approve-approved-merge` | approve | Merge approved: a signed approval covers this pull request at this head commit, and GitHub confirms the branch, repository, reviews and checks. |
+| 7 | `reject-otherwise` | reject | Refused: the target is not a pull request reference. |
 
 ## What the approval covers, and what it does not
 
-- **Covered:** the pull request (`target`) and the head commit (`headSha`). A merge at any other head is refused.
-- **Restricted by a rule, not by the approval:** the merge method. Only `merge` is accepted.
-- **Not covered:** the caller-declared safety facts. They can refuse a merge, but a true value does not prove anything about GitHub.
+- **Covered:** the pull request and the head commit. A merge at any other head is refused.
+- **Restricted by a rule:** the merge method. Only `merge` is accepted.
+- **Read from GitHub, not from the approval:** branch protection, repository authorization, reviews and checks.
+- **Not checked:** the risk score. It is the caller's word, and it can only refuse.
 
 ## Known gaps
 
-- The five caller-declared facts (`branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, `riskScore`) are not checked against GitHub. They only refuse. Until a GitHub signal source exists, a caller can declare these facts true to avoid a refusal it would otherwise get. The facts can never produce an approval on their own, so the approver's signed review of the head commit remains the control that authorizes a merge.
+- The GitHub signal source reads branch protection through the branch protection API. Branch rulesets, which GitHub also offers, are not read. A repository that protects its branch only with rulesets would be reported as unprotected, so the merge is refused.
+- The risk score is declared by the caller. Until a real source exists, it can only refuse.
 - A merge is irreversible through the connector.
 
 ## Decisions
 
 1. **Merge method:** `merge` only. Decided.
-2. **The five caller-declared facts:** accepted as refuse-only until a GitHub signal source exists. Decided for now. The GitHub facts (`branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`) should get a signal source. `riskScore` needs a real source, or it should be dropped.
+2. **Branch protection, repository authorization, reviews and checks:** read from GitHub by a signal source, and each must hold. Decided.
+3. **Risk score:** declared by the caller, refuse-only, or dropped. Still to decide. Dropping it is simpler, unless Org A has a real source for it.
 
 ## Changing this policy
 
