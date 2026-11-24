@@ -1,5 +1,7 @@
 # orgs
 
+Follow read me strictly
+
 This repository holds each organization's own Parmana decisions: the policies that say what it allows, the signed records of who approved them, and the setup of the connectors it uses.
 
 It is separate from the Parmana software and from the connector code, on purpose.
