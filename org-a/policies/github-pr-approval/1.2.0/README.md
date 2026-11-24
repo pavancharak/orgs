@@ -21,7 +21,7 @@ The approval covers the pull request and the head commit (`expectedHeadSha`). A 
 2. The rules are checked in order, and the first match decides.
 3. If no rule matches, the outcome is reject.
 
-Each signal's trust is in the table below. A sourced fact counts only when the source signs its answer. An untrusted fact can refuse, never authorize.
+Each signal's trust is in the table below. A sourced fact counts only when the source signs its answer.
 
 ## Signals
 
@@ -34,7 +34,6 @@ Each signal's trust is in the table below. A sourced fact counts only when the s
 | `branchProtected` | boolean | Sourced | GitHub signal source: the base branch has branch protection. |
 | `requiredReviewsCompleted` | boolean | Sourced | GitHub signal source: the required approving reviews exist at the expected head, and none request changes. |
 | `statusChecksPassed` | boolean | Sourced | GitHub signal source: every check run at the expected head passed, and every commit status is success. |
-| `riskScore` | number | Untrusted | Declared by the caller. Can only refuse above 3. |
 
 ## Rules
 
@@ -55,19 +54,17 @@ Checked in this order. The first match decides.
 - **Covered:** the pull request and the head commit. A merge at any other head is refused.
 - **Restricted by a rule:** the merge method. Only `merge` is accepted.
 - **Read from GitHub, not from the approval:** branch protection, repository authorization, reviews and checks.
-- **Not checked:** the risk score. It is the caller's word, and it can only refuse.
 
 ## Known gaps
 
 - The GitHub signal source reads branch protection through the branch protection API. Branch rulesets, which GitHub also offers, are not read. A repository that protects its branch only with rulesets would be reported as unprotected, so the merge is refused.
-- The risk score is declared by the caller. Until a real source exists, it can only refuse.
 - A merge is irreversible through the connector.
 
 ## Decisions
 
 1. **Merge method:** `merge` only. Decided.
 2. **Branch protection, repository authorization, reviews and checks:** read from GitHub by a signal source, and each must hold. Decided.
-3. **Risk score:** declared by the caller, refuse-only, or dropped. Still to decide. Dropping it is simpler, unless Org A has a real source for it.
+3. **Risk score:** dropped. Decided. The approval and the sourced GitHub facts carry the decision. A score can return later from a real source, as a new policy version.
 
 ## Changing this policy
 
