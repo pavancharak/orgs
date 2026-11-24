@@ -85,9 +85,23 @@ Apply migrations before deploying the code that needs them. The deployment order
 
 ## Connecting
 
-- The Parmana service reads `DATABASE_URL` from its own environment. Set it there, not in this repository.
-- Use the pooled connection string that Supabase gives for the service, not the direct one, unless the operator says otherwise.
-- Never paste a connection string into a chat, a commit, a log, or a file in this repository.
+The Parmana service for Org A reads these settings from its own environment. Set them in the deployment, never in this repository.
+
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `PARMANA_STORAGE` | `postgres` | Selects the PostgreSQL store. Set it explicitly. |
+| `DATABASE_URL` | The Postgres connection string for Org A's database | Secret. Never recorded here. |
+| `PARMANA_DB_SCHEMA` | Leave unset, unless Org A's database is shared with another Parmana system on purpose | When set, it puts this service's tables on that schema. Use the session pooler (port 5432) with it, since a transaction pooler may not keep the setting. |
+
+`DATABASE_PROVIDER` is no longer read. If it is set at all, the server refuses to start. Remove it from the deployment. Use `PARMANA_STORAGE` instead.
+
+The full list of variables is in `docs/site/deployment/environment-variables.mdx` in `parmana-core`, at the pinned commit.
+
+**Rules for the connection:**
+
+- Use one database for Org A, and never point another organization's deployment at it.
+- Do not paste a connection string into a chat, a commit, a log, or a file in this repository.
+- Before any script runs, check the `DATABASE_URL` in the shell. The migrate command prints the database it will use, and that line must be read before you continue.
 
 ## Rules
 
