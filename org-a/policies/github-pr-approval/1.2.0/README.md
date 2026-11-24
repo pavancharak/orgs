@@ -11,11 +11,11 @@ Authorizes the merge of one GitHub pull request, owner/repo#number, through the 
 
 ## What it covers
 
-Merges one GitHub pull request through the GitHub connector, with the merge method `merge`, `squash` or `rebase`. A merge cannot be undone through the connector.
+Merges one GitHub pull request through the GitHub connector, using the `merge` method only. A merge cannot be undone through the connector.
 
 The approval covers the pull request **and the head commit** (`expectedHeadSha`). If the branch has moved since the approver reviewed it, the merge is refused. This is what stops a merge of code the approver never saw.
 
-The approval does **not** cover the merge method. The rules decide which methods are allowed, and the drafts allow all three. Decide this before approval; see the open decisions below.
+The approval does not cover the merge method. A rule allows only `merge`, so any other method is refused. `merge` keeps every commit the approver reviewed, with the approved head as a parent of the merge commit.
 
 ## How a decision is made
 
@@ -67,7 +67,7 @@ Checked in this order. The first match decides.
 ## What the approval covers, and what it does not
 
 - **Covered:** the pull request (`target`) and the head commit (`headSha`). A merge at any other head is refused.
-- **Not covered:** the merge method. Any allowed method is accepted under the approval.
+- **Restricted by a rule, not by the approval:** the merge method. Only `merge` is accepted.
 - **Not covered:** the caller-declared safety facts. They can refuse a merge, but a true value does not prove anything about GitHub.
 
 ## Known gaps
@@ -75,10 +75,10 @@ Checked in this order. The first match decides.
 - The five caller-declared facts (`branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, `riskScore`) are not checked against GitHub. They only refuse. Until a GitHub signal source exists, a caller can declare these facts true to avoid a refusal it would otherwise get. The facts can never produce an approval on their own, so the approver's signed review of the head commit remains the control that authorizes a merge.
 - A merge is irreversible through the connector.
 
-## Open decisions before approval
+## Decisions
 
-1. **Which merge methods are allowed.** The drafts allow `merge`, `squash` and `rebase`. Decide whether to allow only `squash`, for example.
-2. **Whether to require a GitHub signal source** for the five facts before approval, or to accept them as refuse-only.
+1. **Merge method:** `merge` only. Decided.
+2. **The five caller-declared facts:** accepted as refuse-only until a GitHub signal source exists. Decided for now. The GitHub facts (`branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`) should get a signal source. `riskScore` needs a real source, or it should be dropped.
 
 ## Changing this policy
 

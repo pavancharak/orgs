@@ -32,14 +32,14 @@ Record the commit you deploy in the table at the end of this page.
 
 | Capability | Does | Changes GitHub | Policy |
 | --- | --- | --- | --- |
-| `github:pr-merge` | Merges a pull request with `merge`, `squash` or `rebase`, at the head commit the approver reviewed | **Yes. Irreversible through the connector.** | `github-pr-approval` 1.2.0 (draft, not approved) |
+| `github:pr-merge` | Merges a pull request with the `merge` method only, at the head commit the approver reviewed | **Yes. Irreversible through the connector.** | `github-pr-approval` 1.2.0 (draft, not approved) |
 
 The read and comment capabilities are not used by Org A. The connector still has them, but the endpoint does not serve them, and Org A does not register them.
 
 ### Target and parameters
 
 - **Target:** `owner/repo#number`, for example `acme/payments#17`. Anything else is refused before GitHub is called.
-- **`github:pr-merge`:** `mergeMethod` (required: `merge`, `squash`, `rebase`) and `expectedHeadSha` (required by the policy: 40 lowercase hex characters, the head commit the approver reviewed). GitHub refuses the merge if the head has moved.
+- **`github:pr-merge`:** `mergeMethod` (required: `merge`; the policy refuses `squash` and `rebase`) and `expectedHeadSha` (required by the policy: 40 lowercase hex characters, the head commit the approver reviewed). GitHub refuses the merge if the head has moved.
 
 Any other parameter is refused.
 
