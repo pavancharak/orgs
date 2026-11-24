@@ -122,6 +122,42 @@ The checks run when a registration is **proposed**, and again when it is **appro
 
 **What this does not cover:** the endpoint itself. If the endpoint's own host is under someone else's control, a release goes to whatever answers at a public address that the host name resolves to. Org A should control the endpoint's DNS and certificate, and that is part of the deployment steps above.
 
+## GitHub signal source
+
+The merge policy reads four facts from GitHub through a signal source. The source is a separate service, in `parmana-connectors` (`src/signal/github-signal-main.ts`). It answers only signed queries from Parmana, for its own audience, and it holds the App key. Parmana never holds it.
+
+### Claims
+
+| Claim | Holds when | Source of the answer |
+| --- | --- | --- |
+| `repo.authorized` | The repository is on the service's allowed list | The service's own list. No GitHub call. |
+| `pr.branch-protected` | The pull request's base branch has branch protection | GitHub's branch protection API |
+| `pr.reviews-complete` | At the expected head commit, the required number of approving reviews is given, and no reviewer's latest review requests changes | GitHub's pull request reviews, and branch protection for the required count |
+| `pr.checks-passing` | At the expected head commit, every check run has completed with success, neutral or skipped, and every commit status is success | GitHub's check runs and commit statuses |
+
+A claim is checked for the expected head commit that the query carries. If the head has moved, the review and check claims answer false. A GitHub call that fails, or an answer the service does not expect, is reported as unavailable, and no value is guessed.
+
+**Known gap:** branch rulesets are not read. Only classic branch protection is. A repository that protects its branches only with rulesets is reported as unprotected, so a merge into it is refused.
+
+### Settings
+
+| Variable | Value |
+| --- | --- |
+| `PARMANA_SIGNAL_AUDIENCE` | The `https://` URL Parmana queries, exactly as registered |
+| `PARMANA_SIGNAL_PARMANA_PUBLIC_KEY_PEM` | Parmana's Ed25519 public key, PEM |
+| `PARMANA_SIGNAL_PARMANA_KEY_ID` | Parmana's key id. Default `default`. |
+| `PARMANA_SIGNAL_SIGNING_KEY_PEM` | This service's Ed25519 private key, PEM. Secret. |
+| `PARMANA_SIGNAL_SIGNING_KEY_ID` | This service's key id. Default `signal-1`. |
+| `GITHUB_APP_CREDENTIAL` | The App credential, as for the endpoint. Secret. |
+| `GITHUB_SIGNAL_ALLOWED_REPOSITORIES` | Comma-separated `owner/repo` names this source may answer for. Required. |
+| `PORT` | Optional. Default `8080`. |
+
+Run it with `npm run start:github-signal` from a checkout of `parmana-connectors` at the pinned commit. Serve it over HTTPS.
+
+### Registering the source with Parmana
+
+The policy names the source `github-pull-requests`. Parmana must have that source registered before the policy can use it. The registration is a business signal source change, approved through the maker and checker flow, the same way an external connector is registered. Register the source's audience and its signing public key, and record the approval in this repository's governance log.
+
 ## Status
 
 | Item | Status |
@@ -131,6 +167,7 @@ The checks run when a registration is **proposed**, and again when it is **appro
 | External endpoint merged | Yes (PR #89) |
 | Endpoint configuration names aligned with the connectors | Done in `parmana-connectors` commit `dd27c1f` on branch `fix/github-endpoint-config`. Not yet merged. |
 | Durable answer store | **Not built. Required before production.** |
+| GitHub signal source | Built and tested in `parmana-connectors` (branch `feat/github-signal-source`). Not yet deployed or registered. |
 | Policies approved | **Not done. All three are drafts.** |
 | Endpoint deployed at a public HTTPS address | **Not done.** Read the address checks above first. |
 | Endpoint registered with Parmana, per capability | **Not done** |
