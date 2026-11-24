@@ -23,6 +23,17 @@ The approval covers the pull request and the head commit (`expectedHeadSha`). A 
 
 Each signal's trust is in the table below. A sourced fact counts only when the source signs its answer.
 
+## Tiers
+
+This policy uses the older rule format, so its rules approve or reject in order. Mapped to the named tiers:
+
+- **Refuse:** `reject-no-approval`, `reject-no-head-sha`, `reject-not-merge-method`, `reject-unsafe-state`. Each stops the merge outright.
+- **Review:** none separately. The approve tier needs the signed approval, which is the human review.
+- **Approve:** `approve-approved-merge`. Requires the signed approval for this head, and every sourced fact to hold.
+- **Reject:** `reject-otherwise`, the default.
+
+Moving this policy to the named format is a new version, approved through the maker and checker flow.
+
 ## Signals
 
 | Signal | Type | Trust | Meaning |

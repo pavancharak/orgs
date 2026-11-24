@@ -141,6 +141,28 @@ For Org A, the GitHub policies have their own known gaps, listed in each policy'
 | `403 STEP_UP_AUTHORIZATION_INVALID` | The step-up signature expired (over 120 seconds), was reused, or used a key that does not match the registered one | Sign again and send at once |
 | `400` naming a field, on propose | The body is malformed, `policyId` does not match the URL, or the version has characters outside `A-Z a-z 0-9 . _ -` | Read the `error` message |
 
+## Tiers
+
+A tier says what kind of outcome a rule can produce. Parmana's policy format checks rules in four named tiers, in this order:
+
+1. **Refuse.** Stops a request outright, whatever else is true.
+2. **Review.** Sends the request to a person to decide.
+3. **Approve.** Allows the request, and only when a signed approval supports it.
+4. **Reject.** The default when nothing else matched.
+
+Each rule in the newer format names its tier. A request is checked against the refuse rules first, then review, then approve, then reject.
+
+**The drafts here use the older format.** Their rules approve or reject in order, and the first match decides, so they have no named tiers. The mapping below says how the merge policy's rules correspond to the tiers, so the move to the named format is mechanical:
+
+| Tier | Merge policy rules |
+| --- | --- |
+| Refuse | `reject-no-approval`, `reject-no-head-sha`, `reject-not-merge-method`, `reject-unsafe-state` |
+| Review | None yet. A person's approval is what the approve tier requires, so review is implicit. |
+| Approve | `approve-approved-merge` |
+| Reject | `reject-otherwise` |
+
+Moving the policies to the named format is planned, but not done. It's a new policy version, approved through the maker and checker flow, not an edit to these files.
+
 ## Folder layout for each policy
 
 Each policy version has its own folder, and every signal source that policy reads has its own file under that policy's `signals/` folder:
