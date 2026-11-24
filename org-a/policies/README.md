@@ -140,3 +140,18 @@ For Org A, the GitHub policies have their own known gaps, listed in each policy'
 | `403 NON_HUMAN_CALLER_DENIED` | The key is not registered as a human | The operator registers it as `USER` |
 | `403 STEP_UP_AUTHORIZATION_INVALID` | The step-up signature expired (over 120 seconds), was reused, or used a key that does not match the registered one | Sign again and send at once |
 | `400` naming a field, on propose | The body is malformed, `policyId` does not match the URL, or the version has characters outside `A-Z a-z 0-9 . _ -` | Read the `error` message |
+
+## Folder layout for each policy
+
+Each policy version has its own folder, and every signal source that policy reads has its own file under that policy's `signals/` folder:
+
+```
+policies/<policy name>/<version>/
+  policy.json       the policy
+  README.md         what the policy does, and its gaps
+  signals/          one file per signal source the policy reads
+    README.md
+    <source name>.json
+```
+
+A policy with no signal sources has no `signals/` folder.

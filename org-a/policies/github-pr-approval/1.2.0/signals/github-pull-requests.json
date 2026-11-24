@@ -1,0 +1,87 @@
+{
+  "source": "github-pull-requests",
+  "description": "GitHub facts for the merge policy, answered by the GitHub signal source in parmana-connectors (src/signal/github-signal-main.ts).",
+  "audience": "REPLACE_WITH_THE_HTTPS_URL_OF_THE_SIGNAL_SERVICE",
+  "signedBy": "The service's own Ed25519 key. Its public key is registered with Parmana through the maker and checker flow.",
+  "registeredThrough": "Business signal source registration, approved by a checker, before the policy can use it.",
+  "claims": {
+    "repo.authorized": {
+      "usedBy": [
+        "repositoryAuthorized"
+      ],
+      "subject": "target",
+      "parameters": [],
+      "holds": "The repository is on the service's allowed list. No GitHub call."
+    },
+    "pr.branch-protected": {
+      "usedBy": [
+        "branchProtected"
+      ],
+      "subject": "target",
+      "parameters": [
+        "expectedHeadSha"
+      ],
+      "holds": "The pull request's base branch has classic branch protection."
+    },
+    "pr.reviews-complete": {
+      "usedBy": [
+        "requiredReviewsCompleted"
+      ],
+      "subject": "target",
+      "parameters": [
+        "expectedHeadSha"
+      ],
+      "holds": "At the expected head, the required approving reviews are given and no reviewer's latest review requests changes."
+    },
+    "pr.checks-passing": {
+      "usedBy": [
+        "statusChecksPassed"
+      ],
+      "subject": "target",
+      "parameters": [
+        "expectedHeadSha"
+      ],
+      "holds": "At the expected head, every check run completed with success, neutral or skipped, and every commit status is success."
+    }
+  },
+  "maxAgeSeconds": 60,
+  "knownGaps": [
+    "Branch rulesets are not read. Only classic branch protection is."
+  ],
+  "policyUses": {
+    "repositoryAuthorized": {
+      "source": "github-pull-requests",
+      "claim": "repo.authorized",
+      "subject": "target",
+      "maxAgeSeconds": 60,
+      "parameters": []
+    },
+    "branchProtected": {
+      "source": "github-pull-requests",
+      "claim": "pr.branch-protected",
+      "subject": "target",
+      "maxAgeSeconds": 60,
+      "parameters": [
+        "expectedHeadSha"
+      ]
+    },
+    "requiredReviewsCompleted": {
+      "source": "github-pull-requests",
+      "claim": "pr.reviews-complete",
+      "subject": "target",
+      "maxAgeSeconds": 60,
+      "parameters": [
+        "expectedHeadSha"
+      ]
+    },
+    "statusChecksPassed": {
+      "source": "github-pull-requests",
+      "claim": "pr.checks-passing",
+      "subject": "target",
+      "maxAgeSeconds": 60,
+      "parameters": [
+        "expectedHeadSha"
+      ]
+    }
+  }
+}
