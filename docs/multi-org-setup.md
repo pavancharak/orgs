@@ -154,14 +154,18 @@ Update the organization's `README.md` and `database/README.md` with the date, th
 - Back up each organization's database on its own schedule.
 - Test a restore for each organization once, into a separate database, before the first real use. Record the test in that organization's `database/README.md`.
 
-## Not confirmed
+## What the code shows
 
-These are not confirmed from the sources this document was written from. Confirm each before relying on it:
+These were checked against `parmana-core` on `main`:
 
-- **Whether the database schema separates tenants.** It is not confirmed, and this document assumes it does not.
-- **Per-tenant signing keys.** The cryptography overview describes them as opt-in. The exact setting is not confirmed.
+- **The database does not separate tenants.** No migration in `supabase/migrations/` has a tenant column. Every organization's data must therefore be in its own database. This document depends on that.
+- **Per-tenant signing keys are not a switch.** The runtime always has a tenant key resolver. A request for a tenant uses that tenant's own key only when one has been provisioned for it. Otherwise the default key signs. Provisioning is described in `packages/runtime/src/TenantKeyResolver.ts`. This document does not rely on tenant keys for separation between organizations.
+- **Registration responses** are as described in `org-a/connectors/README.md`.
+
+## Still to confirm before a deployment
+
+- **The checks Parmana makes on an endpoint address at approval.** The rules are in the external connector code. Read them before registering an endpoint in production.
 - **Whether one deployment can ever serve two organizations safely.** This document does not support it.
-- **The response of each external connector call**, and the checks on the endpoint address when a registration is approved. The connectors' status table records what the operator sees.
 
 ## Checklist for a new organization
 

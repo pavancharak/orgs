@@ -103,9 +103,16 @@ A registration makes Parmana release a capability to the endpoint. It is a chang
 2. **Approve.** A checker, who is a different human caller from the maker, calls `POST /external-connectors/changes/<id>/approve` with their own key and a step-up authorization for that change id and action `approve`. Parmana checks the endpoint address again at approval, and applies the change in the same step.
 3. **Verify.** The registration is active only after approval. Confirm it before releasing anything.
 
+**What each call returns (from the Parmana code):**
+
+- **Propose:** `201 Created`, with the change record in the body. Its `status` is `PENDING_APPROVAL`, and its `changeId` is the id for the approval.
+- **Approve:** `200 OK`, with the resolved change record. Its `status` is `APPROVED`, and `resolvedBy` names the checker.
+- **Refused:** an `error` message with a `code` field. Common codes are the ones for authentication (`401`), a missing step-up (`403`), and the same person proposing and approving.
+- **List:** `GET /external-connectors/changes?status=PENDING_APPROVAL` returns `{ "changes": [...] }`.
+
 **Each capability is one registration.** Register `github:pr-fetch`, `github:pr-merge` and `github:comment` separately, each with its own policy.
 
-**Not confirmed here:** the exact response of each call, and the exact checks on the endpoint address at approval. Record what the operator sees in the status table below.
+**Not confirmed here:** the exact checks Parmana makes on the endpoint address at approval. The register route checks it again at approval, and the rules are in `parmana-core`'s external connector code.
 
 ## Status
 

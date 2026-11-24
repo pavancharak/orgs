@@ -52,30 +52,40 @@ Both are needed to verify the log. Keep them together, and commit them together.
 
 ## Exporting the log
 
-**Where the scripts run.** The export and verify scripts are Parmana's. They run from a checkout of `parmana-core`, at the commit pinned in `org-a/database/README.md`. They read and write that checkout's own `governance/` folder, not this folder. So, for Org A, the export is a copy step:
+The export and verify scripts are Parmana's, and they run from a checkout of `parmana-core`. They read and write the folder named by `PARMANA_GOVERNANCE_DIR`, and they read policies from `PARMANA_POLICY_DIR`. Both settings take a folder, so Org A's own repository can be the place the log lives.
+
+**Permanent procedure, once the pinned `parmana-core` commit includes the change in PR #775:**
 
 ```bash
-# In a clean checkout of parmana-core, at the pinned commit,
+# In a checkout of parmana-core at the pinned commit,
 # with DATABASE_URL set in the shell (never in a file):
+export PARMANA_GOVERNANCE_DIR=/path/to/orgs/org-a/governance
+export PARMANA_POLICY_DIR=/path/to/orgs/org-a/policies
 npm ci
 npm run policy-log:export
 ```
 
-Then copy the two files it wrote, `governance/policy-approvals.jsonl` and `governance/policy-approval-keys.json`, into `org-a/governance/` in this repository, and commit them with the policy change they record.
+The export writes `policy-approvals.jsonl` and `policy-approval-keys.json` into the governance folder, then checks them. Commit those two files with the policy change they record.
 
-Check the script's options before you rely on it: `scripts/policy-approval-log.ts` has `verify`, `export`, `--base` and `--require-coverage`. Its header comment, in `parmana-core`, is the reference for them.
+**Interim procedure, for the commit pinned today (`88dd7e0b`), which does not have the change yet:** the scripts write into their own checkout. Run the export in that checkout, then copy the two files it wrote into `org-a/governance/`, and commit them with the policy change. Remove the copies from the checkout afterwards, and never commit them there.
+
+Check the script's options before you rely on them. `scripts/policy-approval-log.ts` supports `verify`, `export`, `--base` and `--require-coverage`. Its header comment, in `parmana-core`, is the reference for them.
 
 ## Verifying the log
 
-The verify command checks the chain, the signatures against the public keys, and that each policy in effect has an approval. It has the same limit as the export: it reads its own checkout's `governance/` folder. For Org A, copy the two files into that checkout's `governance/` folder, run the check there, and remove the copies afterwards. Do not commit the copies into `parmana-core`.
+Verification checks the chain, the signatures against the public keys, and that each policy in effect has an approval. Verify from the same checkout as the export.
+
+**Permanent procedure, once PR #775 is in the pinned commit:**
 
 ```bash
-# In a clean checkout of parmana-core at the pinned commit,
-# after copying org-a's two governance files into its governance/ folder:
-PARMANA_POLICY_DIR=/path/to/orgs/org-a/policies npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+export PARMANA_GOVERNANCE_DIR=/path/to/orgs/org-a/governance
+export PARMANA_POLICY_DIR=/path/to/orgs/org-a/policies
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
 ```
 
-It fails if the log does not verify, or if a live policy has no matching approval.
+It passes with `All N checked policy file(s) have a matching approval record`. It fails, and says which entry is wrong, when the log does not verify, or when a live policy has no matching approval.
+
+**Interim procedure:** copy the two files into the checkout's `governance/` folder, run the same command without the governance setting, then remove the copies.
 
 ## Who holds what
 
@@ -93,6 +103,10 @@ It fails if the log does not verify, or if a live policy has no matching approva
 - Commit the two files with the policy change they record.
 - Keep a backup of this repository. The log is evidence.
 
-## The permanent fix, not yet done
+## Status
 
-The scripts assume they run from their own checkout. The permanent fix is a small change in `parmana-core`: the export and verify scripts should take the governance folder and the policy folder as arguments. Then Org A's repository can be the root of its own governance, with no copy step. Until that change is made, follow the procedure above exactly.
+| Item | Status |
+| --- | --- |
+| Settings for the governance and policy folders | In `parmana-core` PR #775. Not yet in the pinned commit. |
+| Verification with a test | Added by PR #775 |
+| Org A's log committed in this repository | Not yet. The log is empty until the first approval is exported. |
