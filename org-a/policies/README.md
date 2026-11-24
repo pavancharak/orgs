@@ -111,7 +111,7 @@ These checks run in every environment, including test and development. No enviro
 | `consumed_approval_nonces` | Action approvals already used |
 | `refusal_records` | Every refused request, signed |
 
-For Org A, the approval log is kept in this repository, under `org-a/governance/policy-approvals.jsonl`. Parmana writes it. Never write it by hand.
+Parmana records each approval in its database. For Org A, the signed log is kept in this repository, under `org-a/governance/`, by the export procedure in `org-a/governance/README.md`. Never write it by hand.
 
 ## Changing a policy
 
