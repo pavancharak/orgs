@@ -2,7 +2,7 @@
   "policyId": "github-pr-approval",
   "policyVersion": "1.2.0",
   "schemaVersion": "1.0.0",
-  "description": "Authorizes a merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). A merge is approved only with a signed human approval for that exact pull request, the branch protected, the repository authorized, required reviews completed, status checks passing, and a risk score of 3 or less. Any other case is refused.",
+  "description": "Authorizes a merge of one GitHub pull request, owner/repo#number, through the GitHub connector (github:pr-merge). Only a signed human approval for that exact pull request can authorize a merge. The caller-declared safety facts can refuse one, never authorize it. A merge is refused when the branch is not protected, the repository is not authorized, required reviews are not complete, a status check is not passing, or the risk score is above 3. Any other case is refused.",
   "signalsSchema": {
     "targetRef": "string",
     "mergeApproved": "boolean",
@@ -84,33 +84,12 @@
           {
             "fact": "mergeApproved",
             "operator": "is_true"
-          },
-          {
-            "fact": "branchProtected",
-            "operator": "is_true"
-          },
-          {
-            "fact": "repositoryAuthorized",
-            "operator": "is_true"
-          },
-          {
-            "fact": "requiredReviewsCompleted",
-            "operator": "is_true"
-          },
-          {
-            "fact": "statusChecksPassed",
-            "operator": "is_true"
-          },
-          {
-            "fact": "riskScore",
-            "operator": "lte",
-            "value": 3
           }
         ]
       },
       "outcome": {
         "action": "approve",
-        "reason": "Merge approved: a signed approval covers this pull request and every safety check passed."
+        "reason": "Merge approved: a signed approval covers this pull request. The caller-declared checks can refuse a merge, but they cannot authorize one."
       }
     },
     {
