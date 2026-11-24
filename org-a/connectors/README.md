@@ -122,7 +122,9 @@ A registration makes Parmana release a capability to the endpoint. It is a chang
 
 The checks run when a registration is **proposed**, and again when it is **approved** (`packages/api/src/routes/external-connectors.ts`, the approve route). A refused check returns an error and the change is not stored, or not approved. The checker should expect the address check to run at approval too.
 
-**Known residual risk, not closed by the code.** Releases do not check the address again. The host is resolved when a release is sent, so if the name's DNS later changes to a private address, Parmana sends the release there. The approval checks reduce this risk but do not remove it. Before a production registration, the operator should control the endpoint's DNS and keep it under Org A's control, and confirm the approved address is still public at release time. Closing the gap in code is a separate change in `parmana-core`.
+**Checked again on every release.** Each release resolves the endpoint's host again and refuses the release if any address it resolves to is not public. It then connects only to the addresses it has just checked, and it verifies the TLS certificate against the host name. So a DNS change after approval does not let a release reach a private address. This is in `packages/execution-gateway/src/connector-execution/GatewayExternalAdapter.ts`: `execute` calls `resolvePublicEndpointAddresses`, and `createPinnedHttpsTransport` connects to the checked addresses.
+
+**What this does not cover:** the endpoint itself. If the endpoint's own host is under someone else's control, a release goes to whatever answers at a public address that the host name resolves to. Org A should control the endpoint's DNS and certificate, and that is part of the deployment steps above.
 
 ## Status
 
